@@ -1,0 +1,22 @@
+:host {
+  display: block;
+  height: 100vh;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
+  height: 100%;
+}
+
+.map-pane,
+.history-pane {
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: 58vh 1fr;
+  }
+}

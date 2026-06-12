@@ -1,0 +1,52 @@
+<aside class="history-panel">
+  <header class="panel-header">
+    <p class="eyebrow">Historical year</p>
+    <h1>{{ historyTime.formattedYear() }}</h1>
+    @if (historyQuery.response(); as data) {
+      <p class="place">{{ data.placeName }}</p>
+      <p class="period">{{ data.periodLabel }}</p>
+    } @else {
+      <p class="place muted">Click a location on the map</p>
+    }
+  </header>
+
+  <section class="panel-body">
+    @if (historyQuery.loading()) {
+      <div class="state-card">Loading historical context…</div>
+    } @else if (historyQuery.error()) {
+      <div class="state-card error">{{ historyQuery.error() }}</div>
+    } @else {
+      @if (historyQuery.response(); as data) {
+        <p class="summary">{{ data.summary }}</p>
+
+        @if (data.events.length > 0) {
+          <h2>Notable events</h2>
+          <ul class="events">
+            @for (event of data.events; track event.title) {
+              <li>
+                <strong>
+                  @if (event.year !== undefined) {
+                    <span class="event-year">{{ event.year < 0 ? (event.year * -1) + ' BCE' : event.year + ' CE' }}</span>
+                  }
+                  {{ event.title }}
+                </strong>
+                <p>{{ event.detail }}</p>
+              </li>
+            }
+          </ul>
+        }
+
+        <footer class="meta">
+          <span class="confidence">Confidence: {{ data.confidence }}</span>
+          @if (historyQuery.sourceLabel()) {
+            <span class="source">{{ historyQuery.sourceLabel() }}</span>
+          }
+        </footer>
+      } @else {
+        <div class="state-card">Click a point on the map to load historical context.</div>
+      }
+    }
+  </section>
+
+  <p class="disclaimer">AI-generated content may be inaccurate. Uses free-tier services only.</p>
+</aside>
