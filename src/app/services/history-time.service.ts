@@ -3,6 +3,8 @@ import { Injectable, computed, signal } from '@angular/core';
 const MIN_YEAR = -3000;
 const MAX_YEAR = new Date().getFullYear();
 
+export { MIN_YEAR, MAX_YEAR };
+
 export interface MapCenter {
   lat: number;
   lng: number;
@@ -12,7 +14,7 @@ export interface MapCenter {
 @Injectable({ providedIn: 'root' })
 export class HistoryTimeService {
   readonly currentYear = signal(new Date().getFullYear());
-  readonly center = signal<MapCenter>({ lat: 20, lng: 0, zoom: 2 });
+  readonly selectedLocation = signal<MapCenter | null>(null);
 
   readonly formattedYear = computed(() => formatYear(this.currentYear()));
 
@@ -21,8 +23,12 @@ export class HistoryTimeService {
     this.currentYear.set(clampYear(next));
   }
 
-  setCenter(lat: number, lng: number, zoom: number): void {
-    this.center.set({ lat, lng, zoom });
+  setYear(year: number): void {
+    this.currentYear.set(clampYear(year));
+  }
+
+  selectLocation(lat: number, lng: number, zoom: number): void {
+    this.selectedLocation.set({ lat, lng, zoom });
   }
 }
 
@@ -34,6 +40,30 @@ export function yearStep(currentYear: number, direction: 1 | -1): number {
     abs >= 500 ? 100 :
     500;
   return currentYear + direction * step;
+}
+
+export function parseYearInput(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const bceMatch = /^(\d+)\s*bce$/i.exec(trimmed);
+  if (bceMatch) {
+    return -Number(bceMatch[1]);
+  }
+
+  const ceMatch = /^(\d+)\s*ce$/i.exec(trimmed);
+  if (ceMatch) {
+    return Number(ceMatch[1]);
+  }
+
+  const numeric = Number(trimmed);
+  if (Number.isFinite(numeric) && Number.isInteger(numeric)) {
+    return numeric;
+  }
+
+  return null;
 }
 
 export function clampYear(year: number): number {

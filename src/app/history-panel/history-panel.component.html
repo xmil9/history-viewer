@@ -1,7 +1,27 @@
 <aside class="history-panel">
   <header class="panel-header">
     <p class="eyebrow">Historical year</p>
-    <h1>{{ historyTime.formattedYear() }}</h1>
+    @if (editingYear()) {
+      <input
+        #yearInput
+        class="year-input"
+        type="text"
+        inputmode="numeric"
+        spellcheck="false"
+        [attr.min]="minYear"
+        [attr.max]="maxYear"
+        aria-label="Historical year"
+        placeholder="e.g. 1066 or 500 BCE"
+        [value]="yearDraft()"
+        (input)="yearDraft.set($any($event.target).value)"
+        (blur)="commitYear()"
+        (keydown)="onYearKeydown($event)"
+      />
+    } @else {
+      <button type="button" class="year-display" (click)="startEditingYear()">
+        {{ historyTime.formattedYear() }}
+      </button>
+    }
     @if (historyQuery.response(); as data) {
       <p class="place">{{ data.placeName }}</p>
       <p class="period">{{ data.periodLabel }}</p>

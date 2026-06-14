@@ -96,7 +96,7 @@ export class MapComponent implements OnDestroy {
 		this.map.on('click', (event: L.LeafletMouseEvent) => {
 			const { lat, lng } = event.latlng;
 			const zoom = clampZoom(this.map!.getZoom());
-			this.historyTime.setCenter(lat, lng, zoom);
+			this.historyTime.selectLocation(lat, lng, zoom);
 			this.historyQuery.request({
 				lat,
 				lng,
