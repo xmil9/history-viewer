@@ -114,22 +114,27 @@ function formatYear(year: number): string {
   return `${year} CE`;
 }
 
+function formatYearRange(startYear: number, endYear: number): string {
+  return `${formatYear(startYear)} – ${formatYear(endYear)}`;
+}
+
 export function buildMockHistory(
   lat: number,
   lng: number,
-  year: number,
+  startYear: number,
+  endYear: number,
   placeName: string,
 ): HistoryResponse {
   const region = regionFor(lat, lng);
-  const periodLabel = `${placeName}, ${formatYear(year)}`;
+  const periodLabel = `${placeName}, ${formatYearRange(startYear, endYear)}`;
 
   return {
     placeName,
     periodLabel,
-    summary: `${region.summary} Around ${formatYear(year)}, ${placeName} would have experienced conditions consistent with its broader region.`,
+    summary: `${region.summary} Between ${formatYearRange(startYear, endYear)}, ${placeName} would have experienced conditions consistent with its broader region.`,
     events: region.events.map((event) => ({
       ...event,
-      year: event.year ?? year,
+      year: event.year ?? endYear,
     })),
     confidence: region.confidence,
     source: 'mock',

@@ -3,8 +3,11 @@ import { z } from 'zod';
 export const historyRequestSchema = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
-  year: z.number().int().min(-3000).max(new Date().getFullYear()),
+  startYear: z.number().int().min(-3000).max(new Date().getFullYear()),
+  endYear: z.number().int().min(-3000).max(new Date().getFullYear()),
   zoom: z.number().min(0).max(22),
+}).refine((data) => data.startYear <= data.endYear, {
+  message: 'startYear must be less than or equal to endYear',
 });
 
 export const historyResponseSchema = z.object({

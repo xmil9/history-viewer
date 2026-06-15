@@ -16,7 +16,8 @@ import { HistoryRequest, HistoryResponse } from '../models/history-response.mode
 interface QueryParams {
   lat: number;
   lng: number;
-  year: number;
+  startYear: number;
+  endYear: number;
   zoom: number;
 }
 
@@ -39,7 +40,8 @@ export class HistoryQueryService {
           (a, b) =>
             a.lat.toFixed(2) === b.lat.toFixed(2) &&
             a.lng.toFixed(2) === b.lng.toFixed(2) &&
-            a.year === b.year,
+            a.startYear === b.startYear &&
+            a.endYear === b.endYear,
         ),
         switchMap((params) => this.fetchHistory(params)),
       )
@@ -65,7 +67,8 @@ export class HistoryQueryService {
     const body: HistoryRequest = {
       lat: params.lat,
       lng: params.lng,
-      year: params.year,
+      startYear: params.startYear,
+      endYear: params.endYear,
       zoom: params.zoom,
     };
 
@@ -89,7 +92,7 @@ export class HistoryQueryService {
 }
 
 function cacheKey(params: QueryParams): string {
-  return `${params.lat.toFixed(2)},${params.lng.toFixed(2)},${params.year}`;
+  return `${params.lat.toFixed(2)},${params.lng.toFixed(2)},${params.startYear},${params.endYear}`;
 }
 
 function sourceToLabel(source: HistoryResponse['source'] | undefined): string {

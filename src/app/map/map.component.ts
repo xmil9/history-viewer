@@ -101,7 +101,8 @@ export class MapComponent implements OnDestroy {
 				lat,
 				lng,
 				zoom,
-				year: this.historyTime.currentYear(),
+				startYear: this.historyTime.startYear(),
+				endYear: this.historyTime.endYear(),
 			});
 		});
 	}

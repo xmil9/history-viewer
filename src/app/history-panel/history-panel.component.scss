@@ -21,30 +21,38 @@
 }
 
 h1,
-.year-display,
 .year-input {
   margin: 0;
   font-size: 2rem;
   line-height: 1.1;
 }
 
-.year-display {
-  display: block;
-  padding: 0;
-  border: none;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: text;
+.year-range {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.5rem;
+  align-items: end;
 }
 
-.year-display:hover,
-.year-display:focus-visible {
-  color: #e8f0fa;
-  outline: 2px solid rgba(126, 200, 255, 0.45);
-  outline-offset: 0.2rem;
-  border-radius: 0.25rem;
+.year-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.year-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8ea0b8;
+}
+
+.year-separator {
+  padding-bottom: 0.45rem;
+  color: #8ea0b8;
+  font-size: 1.5rem;
+  line-height: 1;
 }
 
 .year-input {
@@ -55,6 +63,7 @@ h1,
   background: rgba(255, 255, 255, 0.06);
   color: inherit;
   font: inherit;
+  font-size: 1.35rem;
 }
 
 .year-input:focus {

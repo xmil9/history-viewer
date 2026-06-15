@@ -1,72 +1,180 @@
 <aside class="history-panel">
+
   <header class="panel-header">
-    <p class="eyebrow">Historical year</p>
-    @if (editingYear()) {
-      <input
-        #yearInput
-        class="year-input"
-        type="text"
-        inputmode="numeric"
-        spellcheck="false"
-        [attr.min]="minYear"
-        [attr.max]="maxYear"
-        aria-label="Historical year"
-        placeholder="e.g. 1066 or 500 BCE"
-        [value]="yearDraft()"
-        (input)="yearDraft.set($any($event.target).value)"
-        (blur)="commitYear()"
-        (keydown)="onYearKeydown($event)"
-      />
-    } @else {
-      <button type="button" class="year-display" (click)="startEditingYear()">
-        {{ historyTime.formattedYear() }}
-      </button>
-    }
+
+    <p class="eyebrow">Historical period</p>
+
+    <div class="year-range">
+
+      <label class="year-field">
+
+        <span class="year-label">Start</span>
+
+        <input
+
+          class="year-input"
+
+          type="text"
+
+          inputmode="numeric"
+
+          spellcheck="false"
+
+          [attr.min]="minYear"
+
+          [attr.max]="maxYear"
+
+          aria-label="Period start year"
+
+          placeholder="e.g. 1016 or 500 BCE"
+
+          [value]="startDraft()"
+
+          (focus)="onYearFocus('start')"
+
+          (input)="startDraft.set($any($event.target).value)"
+
+          (blur)="onYearBlur()"
+
+          (keydown)="onYearKeydown($event)"
+
+        />
+
+      </label>
+
+      <span class="year-separator" aria-hidden="true">–</span>
+
+      <label class="year-field">
+
+        <span class="year-label">End</span>
+
+        <input
+
+          class="year-input"
+
+          type="text"
+
+          inputmode="numeric"
+
+          spellcheck="false"
+
+          [attr.min]="minYear"
+
+          [attr.max]="maxYear"
+
+          aria-label="Period end year"
+
+          placeholder="e.g. 1066 or 500 CE"
+
+          [value]="endDraft()"
+
+          (focus)="onYearFocus('end')"
+
+          (input)="endDraft.set($any($event.target).value)"
+
+          (blur)="onYearBlur()"
+
+          (keydown)="onYearKeydown($event)"
+
+        />
+
+      </label>
+
+    </div>
+
     @if (historyQuery.response(); as data) {
+
       <p class="place">{{ data.placeName }}</p>
+
       <p class="period">{{ data.periodLabel }}</p>
+
     } @else {
+
       <p class="place muted">Click a location on the map</p>
+
     }
+
   </header>
 
+
+
   <section class="panel-body">
+
     @if (historyQuery.loading()) {
+
       <div class="state-card">Loading historical context…</div>
+
     } @else if (historyQuery.error()) {
+
       <div class="state-card error">{{ historyQuery.error() }}</div>
+
     } @else {
+
       @if (historyQuery.response(); as data) {
+
         <p class="summary">{{ data.summary }}</p>
 
+
+
         @if (data.events.length > 0) {
+
           <h2>Notable events</h2>
+
           <ul class="events">
+
             @for (event of data.events; track event.title) {
+
               <li>
+
                 <strong>
+
                   @if (event.year !== undefined) {
+
                     <span class="event-year">{{ event.year < 0 ? (event.year * -1) + ' BCE' : event.year + ' CE' }}</span>
+
                   }
+
                   {{ event.title }}
+
                 </strong>
+
                 <p>{{ event.detail }}</p>
+
               </li>
+
             }
+
           </ul>
+
         }
 
+
+
         <footer class="meta">
+
           <span class="confidence">Confidence: {{ data.confidence }}</span>
+
           @if (historyQuery.sourceLabel()) {
+
             <span class="source">{{ historyQuery.sourceLabel() }}</span>
+
           }
+
         </footer>
+
       } @else {
+
         <div class="state-card">Click a point on the map to load historical context.</div>
+
       }
+
     }
+
   </section>
 
+
+
   <p class="disclaimer">AI-generated content may be inaccurate. Uses free-tier services only.</p>
+
 </aside>
+

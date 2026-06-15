@@ -1,4 +1,4 @@
-import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { HistoryQueryService } from '../services/history-query.service';
 import {
   HistoryTimeService,
@@ -6,6 +6,8 @@ import {
   MIN_YEAR,
   parseYearInput,
 } from '../services/history-time.service';
+
+type YearField = 'start' | 'end';
 
 @Component({
   selector: 'app-history-panel',
@@ -19,53 +21,72 @@ export class HistoryPanelComponent {
 
   readonly minYear = MIN_YEAR;
   readonly maxYear = MAX_YEAR;
-  readonly editingYear = signal(false);
-  readonly yearDraft = signal('');
+  readonly startDraft = signal(String(this.historyTime.startYear()));
+  readonly endDraft = signal(String(this.historyTime.endYear()));
+  readonly focusedYearField = signal<YearField | null>(null);
 
-  private readonly yearInput = viewChild<ElementRef<HTMLInputElement>>('yearInput');
-
-  startEditingYear(): void {
-    this.yearDraft.set(String(this.historyTime.currentYear()));
-    this.editingYear.set(true);
-    queueMicrotask(() => {
-      const input = this.yearInput()?.nativeElement;
-      input?.focus();
-      input?.select();
+  constructor() {
+    effect(() => {
+      const start = this.historyTime.startYear();
+      const end = this.historyTime.endYear();
+      if (this.focusedYearField() !== 'start') {
+        this.startDraft.set(String(start));
+      }
+      if (this.focusedYearField() !== 'end') {
+        this.endDraft.set(String(end));
+      }
     });
   }
 
-  commitYear(): void {
-    const parsed = parseYearInput(this.yearDraft());
-    if (parsed === null) {
-      this.editingYear.set(false);
+  onYearFocus(field: YearField): void {
+    this.focusedYearField.set(field);
+  }
+
+  onYearBlur(): void {
+    this.focusedYearField.set(null);
+    this.commitYearRange();
+  }
+
+  commitYearRange(): void {
+    const parsedStart = parseYearInput(this.startDraft());
+    const parsedEnd = parseYearInput(this.endDraft());
+    if (parsedStart === null || parsedEnd === null) {
+      this.syncDraftsFromService();
       return;
     }
 
-    const previousYear = this.historyTime.currentYear();
-    this.historyTime.setYear(parsed);
-    this.editingYear.set(false);
+    const previousStart = this.historyTime.startYear();
+    const previousEnd = this.historyTime.endYear();
+    const { startYear, endYear } = this.historyTime.setYearRange(parsedStart, parsedEnd);
+    this.startDraft.set(String(startYear));
+    this.endDraft.set(String(endYear));
 
     const location = this.historyTime.selectedLocation();
-    const nextYear = this.historyTime.currentYear();
-    if (location !== null && nextYear !== previousYear) {
+    if (
+      location !== null &&
+      (startYear !== previousStart || endYear !== previousEnd)
+    ) {
       this.historyQuery.request({
         ...location,
-        year: nextYear,
+        startYear,
+        endYear,
       });
     }
-  }
-
-  cancelYearEdit(): void {
-    this.editingYear.set(false);
   }
 
   onYearKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
       event.preventDefault();
-      this.commitYear();
+      (event.target as HTMLInputElement).blur();
     } else if (event.key === 'Escape') {
       event.preventDefault();
-      this.cancelYearEdit();
+      this.syncDraftsFromService();
+      (event.target as HTMLInputElement).blur();
     }
+  }
+
+  private syncDraftsFromService(): void {
+    this.startDraft.set(String(this.historyTime.startYear()));
+    this.endDraft.set(String(this.historyTime.endYear()));
   }
 }

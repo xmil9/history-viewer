@@ -2,6 +2,7 @@ import { Injectable, computed, signal } from '@angular/core';
 
 const MIN_YEAR = -3000;
 const MAX_YEAR = new Date().getFullYear();
+const DEFAULT_RANGE_SPAN = 50;
 
 export { MIN_YEAR, MAX_YEAR };
 
@@ -11,20 +12,35 @@ export interface MapCenter {
   zoom: number;
 }
 
+export interface YearRange {
+  startYear: number;
+  endYear: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class HistoryTimeService {
-  readonly currentYear = signal(new Date().getFullYear());
+  readonly endYear = signal(MAX_YEAR);
+  readonly startYear = signal(MAX_YEAR - DEFAULT_RANGE_SPAN);
   readonly selectedLocation = signal<MapCenter | null>(null);
 
-  readonly formattedYear = computed(() => formatYear(this.currentYear()));
+  readonly formattedYearRange = computed(() =>
+    formatYearRange(this.startYear(), this.endYear()),
+  );
 
   stepYear(direction: 1 | -1): void {
-    const next = yearStep(this.currentYear(), direction);
-    this.currentYear.set(clampYear(next));
+    const delta = yearStep(this.endYear(), direction) - this.endYear();
+    this.setYearRange(this.startYear() + delta, this.endYear() + delta);
   }
 
-  setYear(year: number): void {
-    this.currentYear.set(clampYear(year));
+  setYearRange(startYear: number, endYear: number): YearRange {
+    let start = clampYear(startYear);
+    let end = clampYear(endYear);
+    if (start > end) {
+      [start, end] = [end, start];
+    }
+    this.startYear.set(start);
+    this.endYear.set(end);
+    return { startYear: start, endYear: end };
   }
 
   selectLocation(lat: number, lng: number, zoom: number): void {
@@ -78,4 +94,8 @@ export function formatYear(year: number): string {
     return '1 BCE / 1 CE';
   }
   return `${year} CE`;
+}
+
+export function formatYearRange(startYear: number, endYear: number): string {
+  return `${formatYear(startYear)} – ${formatYear(endYear)}`;
 }

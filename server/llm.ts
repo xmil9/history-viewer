@@ -10,10 +10,20 @@ function formatYear(year: number): string {
   return `${year} CE`;
 }
 
-function buildPrompt(placeName: string, lat: number, lng: number, year: number): string {
+function formatYearRange(startYear: number, endYear: number): string {
+  return `${formatYear(startYear)} to ${formatYear(endYear)}`;
+}
+
+function buildPrompt(
+  placeName: string,
+  lat: number,
+  lng: number,
+  startYear: number,
+  endYear: number,
+): string {
   return [
-    `For ${placeName} (coordinates ${lat.toFixed(4)}, ${lng.toFixed(4)}) around ${formatYear(year)},`,
-    'give a history summary. List the 10 most notable events in a 50 year period before the given year.',
+    `For ${placeName} (coordinates ${lat.toFixed(4)}, ${lng.toFixed(4)}) between ${formatYearRange(startYear, endYear)},`,
+    'give a history summary. List the 10 most notable events in that period.',
     'Return ONLY valid JSON with this exact shape:',
     '{"placeName":string,"periodLabel":string,"summary":string,"events":[{"year":number,"title":string,"detail":string}],"confidence":"high"|"medium"|"low","source":"gemini"|"groq"|"ollama"|"mock"|"cache"}',
   ].join(' ');
@@ -48,7 +58,8 @@ async function callGemini(
   placeName: string,
   lat: number,
   lng: number,
-  year: number,
+  startYear: number,
+  endYear: number,
 ): Promise<HistoryResponse> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -57,7 +68,7 @@ async function callGemini(
 
   const client = new GoogleGenerativeAI(apiKey);
   const model = client.getGenerativeModel({ model: 'gemma-4-31b-it' });
-  const prompt = buildPrompt(placeName, lat, lng, year);
+  const prompt = buildPrompt(placeName, lat, lng, startYear, endYear);
   console.log('prompt:', prompt);
   const result = await model.generateContent(prompt);
   const text = result.response.text();
@@ -72,7 +83,8 @@ async function callGroq(
   placeName: string,
   lat: number,
   lng: number,
-  year: number,
+  startYear: number,
+  endYear: number,
 ): Promise<HistoryResponse> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
@@ -91,7 +103,7 @@ async function callGroq(
       messages: [
         {
           role: 'user',
-          content: buildPrompt(placeName, lat, lng, year),
+          content: buildPrompt(placeName, lat, lng, startYear, endYear),
         },
       ],
     }),
@@ -119,7 +131,8 @@ async function callOllama(
   placeName: string,
   lat: number,
   lng: number,
-  year: number,
+  startYear: number,
+  endYear: number,
 ): Promise<HistoryResponse> {
   const host = process.env.OLLAMA_HOST ?? 'http://localhost:11434';
   const model = process.env.OLLAMA_MODEL ?? 'llama3.2';
@@ -130,7 +143,7 @@ async function callOllama(
     body: JSON.stringify({
       model,
       stream: false,
-      messages: [{ role: 'user', content: buildPrompt(placeName, lat, lng, year) }],
+      messages: [{ role: 'user', content: buildPrompt(placeName, lat, lng, startYear, endYear) }],
     }),
   });
 
@@ -155,15 +168,16 @@ async function tryProvider(
   placeName: string,
   lat: number,
   lng: number,
-  year: number,
+  startYear: number,
+  endYear: number,
 ): Promise<HistoryResponse> {
   switch (name) {
     case 'gemini':
-      return callGemini(placeName, lat, lng, year);
+      return callGemini(placeName, lat, lng, startYear, endYear);
     case 'groq':
-      return callGroq(placeName, lat, lng, year);
+      return callGroq(placeName, lat, lng, startYear, endYear);
     case 'ollama':
-      return callOllama(placeName, lat, lng, year);
+      return callOllama(placeName, lat, lng, startYear, endYear);
   }
 }
 
@@ -171,7 +185,8 @@ export async function generateHistory(
   placeName: string,
   lat: number,
   lng: number,
-  year: number,
+  startYear: number,
+  endYear: number,
 ): Promise<HistoryResponse> {
   if (process.env.USE_MOCK_HISTORY === 'true') {
     throw new Error('Mock mode enabled');
@@ -195,7 +210,7 @@ export async function generateHistory(
   for (const provider of providers) {
     try {
       markLlmCall();
-      return await tryProvider(provider, placeName, lat, lng, year);
+      return await tryProvider(provider, placeName, lat, lng, startYear, endYear);
     } catch (error) {
       lastError = error instanceof Error ? error : new Error('Unknown LLM error');
     }

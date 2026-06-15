@@ -18,6 +18,7 @@ export interface HistoryResponse {
 export interface HistoryRequest {
   lat: number;
   lng: number;
-  year: number;
+  startYear: number;
+  endYear: number;
   zoom: number;
 }
