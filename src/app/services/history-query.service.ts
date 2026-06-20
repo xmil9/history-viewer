@@ -12,6 +12,7 @@ import {
   tap,
 } from 'rxjs';
 import { HistoryRequest, HistoryResponse } from '../models/history-response.model';
+import { HistoryTimeService } from './history-time.service';
 
 interface QueryParams {
   lat: number;
@@ -24,6 +25,7 @@ interface QueryParams {
 @Injectable({ providedIn: 'root' })
 export class HistoryQueryService {
   private readonly http = inject(HttpClient);
+  private readonly historyTime = inject(HistoryTimeService);
   private readonly cache = new Map<string, HistoryResponse>();
   private readonly querySubject = new Subject<QueryParams>();
 
@@ -49,7 +51,19 @@ export class HistoryQueryService {
   }
 
   request(params: QueryParams): void {
+    this.resolvePlaceName(params.lat, params.lng);
     this.querySubject.next(params);
+  }
+
+  private resolvePlaceName(lat: number, lng: number): void {
+    this.http
+      .get<{ placeName: string }>('/api/geocode', { params: { lat, lng } })
+      .pipe(catchError(() => of(null)))
+      .subscribe((result) => {
+        if (result?.placeName) {
+          this.historyTime.setPlaceLabel(result.placeName);
+        }
+      });
   }
 
   private fetchHistory(params: QueryParams) {
@@ -58,6 +72,7 @@ export class HistoryQueryService {
     if (cached) {
       this.error.set(null);
       this.response.set({ ...cached, source: 'cache' });
+      this.historyTime.setPlaceLabel(cached.placeName);
       return of(cached);
     }
 
@@ -76,6 +91,7 @@ export class HistoryQueryService {
       tap((result) => {
         this.cache.set(key, result);
         this.response.set(result);
+        this.historyTime.setPlaceLabel(result.placeName);
       }),
       catchError((err: HttpErrorResponse) => {
         const message =

@@ -22,10 +22,20 @@ export class HistoryTimeService {
   readonly endYear = signal(MAX_YEAR);
   readonly startYear = signal(MAX_YEAR - DEFAULT_RANGE_SPAN);
   readonly selectedLocation = signal<MapCenter | null>(null);
+  readonly placeLabel = signal<string | null>(null);
 
   readonly formattedYearRange = computed(() =>
     formatYearRange(this.startYear(), this.endYear()),
   );
+
+  readonly periodLabel = computed(() => {
+    const location = this.selectedLocation();
+    if (!location) {
+      return null;
+    }
+    const place = this.placeLabel();
+    return place ? `${place}, ${this.formattedYearRange()}` : this.formattedYearRange();
+  });
 
   stepYear(direction: 1 | -1): void {
     const delta = yearStep(this.endYear(), direction) - this.endYear();
@@ -45,6 +55,11 @@ export class HistoryTimeService {
 
   selectLocation(lat: number, lng: number, zoom: number): void {
     this.selectedLocation.set({ lat, lng, zoom });
+    this.placeLabel.set(formatCoordinates(lat, lng));
+  }
+
+  setPlaceLabel(label: string): void {
+    this.placeLabel.set(label);
   }
 }
 
@@ -98,4 +113,10 @@ export function formatYear(year: number): string {
 
 export function formatYearRange(startYear: number, endYear: number): string {
   return `${formatYear(startYear)} – ${formatYear(endYear)}`;
+}
+
+export function formatCoordinates(lat: number, lng: number): string {
+  const latDir = lat >= 0 ? 'N' : 'S';
+  const lngDir = lng >= 0 ? 'E' : 'W';
+  return `${Math.abs(lat).toFixed(2)}°${latDir}, ${Math.abs(lng).toFixed(2)}°${lngDir}`;
 }

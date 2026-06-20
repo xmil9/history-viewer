@@ -131,12 +131,7 @@ async function callGemini(placeName, lat, lng, startYear, endYear) {
         throw new Error('Gemini API key not configured');
     }
     const client = new generative_ai_1.GoogleGenerativeAI(apiKey);
-    const model = client.getGenerativeModel({
-        model: 'gemma-4-31b-it',
-        generationConfig: {
-            responseMimeType: 'application/json',
-        },
-    });
+    const model = client.getGenerativeModel({ model: 'gemma-4-31b-it' });
     const prompt = buildPrompt(placeName, lat, lng, startYear, endYear);
     console.log('prompt:', prompt);
     const result = await model.generateContent(prompt);

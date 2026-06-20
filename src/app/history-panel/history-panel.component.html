@@ -82,16 +82,11 @@
 
     </div>
 
-    @if (historyQuery.response(); as data) {
-
-      <p class="place">{{ data.placeName }}</p>
-
-      <p class="period">{{ data.periodLabel }}</p>
-
+    @if (historyTime.selectedLocation()) {
+      <p class="place">{{ historyTime.placeLabel() }}</p>
+      <p class="period">{{ historyTime.periodLabel() }}</p>
     } @else {
-
       <p class="place muted">Click a location on the map</p>
-
     }
 
   </header>
