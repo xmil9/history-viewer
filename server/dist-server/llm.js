@@ -19,7 +19,7 @@ function buildPrompt(placeName, lat, lng, startYear, endYear) {
     return [
         `For ${placeName} (coordinates ${lat.toFixed(4)}, ${lng.toFixed(4)}) between ${formatYearRange(startYear, endYear)},`,
         'give a history summary. List the 10 most notable events in that period.',
-        'Return ONLY valid JSON with this exact shape:',
+        'Return ONLY a single JSON object with this exact shape and no other text:',
         '{"placeName":string,"periodLabel":string,"summary":string,"events":[{"year":number,"title":string,"detail":string}],"confidence":"high"|"medium"|"low","source":"gemini"|"groq"|"ollama"|"mock"|"cache"}',
     ].join(' ');
 }
@@ -33,16 +33,97 @@ function canCallLlm() {
 function markLlmCall() {
     llmTimestamps.push(Date.now());
 }
+function looksLikeHistoryResponse(value) {
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+    const record = value;
+    return typeof record.placeName === 'string' && Array.isArray(record.events);
+}
+function extractBalancedJson(text, start) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = start; i < text.length; i++) {
+        const char = text[i];
+        if (inString) {
+            if (escaped) {
+                escaped = false;
+            }
+            else if (char === '\\') {
+                escaped = true;
+            }
+            else if (char === '"') {
+                inString = false;
+            }
+            continue;
+        }
+        if (char === '"') {
+            inString = true;
+        }
+        else if (char === '{') {
+            depth++;
+        }
+        else if (char === '}') {
+            depth--;
+            if (depth === 0) {
+                return text.slice(start, i + 1);
+            }
+        }
+    }
+    return null;
+}
+function collectJsonCandidates(text) {
+    const seen = new Set();
+    const candidates = [];
+    const addCandidate = (value) => {
+        const trimmed = value.trim();
+        if (!trimmed.startsWith('{') || seen.has(trimmed)) {
+            return;
+        }
+        seen.add(trimmed);
+        candidates.push(trimmed);
+    };
+    for (const match of text.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi)) {
+        addCandidate(match[1]);
+    }
+    for (let i = 0; i < text.length; i++) {
+        if (text[i] !== '{') {
+            continue;
+        }
+        const extracted = extractBalancedJson(text, i);
+        if (extracted) {
+            addCandidate(extracted);
+        }
+    }
+    return candidates;
+}
 function extractJson(text) {
     const trimmed = text.trim();
     if (trimmed.startsWith('{')) {
-        return JSON.parse(trimmed);
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (looksLikeHistoryResponse(parsed)) {
+                return parsed;
+            }
+        }
+        catch {
+            // Fall through to candidate extraction.
+        }
     }
-    const match = trimmed.match(/\{[\s\S]*\}/);
-    if (!match) {
-        throw new Error('Model did not return JSON.');
+    const candidates = collectJsonCandidates(text);
+    for (let i = candidates.length - 1; i >= 0; i--) {
+        try {
+            const parsed = JSON.parse(candidates[i]);
+            if (looksLikeHistoryResponse(parsed)) {
+                return parsed;
+            }
+        }
+        catch {
+            // Try the next candidate.
+        }
     }
-    return JSON.parse(match[0]);
+    throw new Error('Model did not return JSON.');
 }
 async function callGemini(placeName, lat, lng, startYear, endYear) {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -50,7 +131,12 @@ async function callGemini(placeName, lat, lng, startYear, endYear) {
         throw new Error('Gemini API key not configured');
     }
     const client = new generative_ai_1.GoogleGenerativeAI(apiKey);
-    const model = client.getGenerativeModel({ model: 'gemma-4-31b-it' });
+    const model = client.getGenerativeModel({
+        model: 'gemma-4-31b-it',
+        generationConfig: {
+            responseMimeType: 'application/json',
+        },
+    });
     const prompt = buildPrompt(placeName, lat, lng, startYear, endYear);
     console.log('prompt:', prompt);
     const result = await model.generateContent(prompt);
